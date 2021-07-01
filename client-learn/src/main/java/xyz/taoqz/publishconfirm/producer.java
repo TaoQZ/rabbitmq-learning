@@ -20,8 +20,8 @@ public class producer {
     public static final int queue_count = 1000;
 
     public static void main(String[] args) throws IOException, InterruptedException, TimeoutException {
-//        publishMessageSingle();
-        publishMessageBatch();
+        publishMessageSingle();
+//        publishMessageBatch();
 //        publishMessageAsync();
     }
 
@@ -31,15 +31,25 @@ public class producer {
         // 开启消息发布确认
         channel.confirmSelect();
         final String queueName = UUID.randomUUID().toString();
-        channel.queueDeclare(queueName, false, false, false, null);
+//        channel.queueDeclare(queueName, false, false, false, null);
 
         final StopWatch stopWatch = new StopWatch();
         stopWatch.start();
         for (int i = 0; i < queue_count; i++) {
             final String msg = UUID.randomUUID().toString();
-            channel.basicPublish("", queueName, null, msg.getBytes(StandardCharsets.UTF_8));
+//            channel.basicPublish("", queueName, null, msg.getBytes(StandardCharsets.UTF_8));
+            // 如果没有开启消息确认,报错会在下行发生 (交换机sss不存在)
+            channel.basicPublish("sss", "qqqq", null, msg.getBytes(StandardCharsets.UTF_8));
+//            (x.exchange交换机存在,qqqq队列不存在时也能发送成功,但消息无法路由会被直接丢弃,但是生产者并不知道没有路由,此时需学习发布确认高级篇)
+//            channel.basicPublish("x.exchange", "qqqq", null, msg.getBytes(StandardCharsets.UTF_8));
             // 单个消息确认
-            channel.waitForConfirms();
+            // 如果开启消息确认,报错会在下行发生,报错内容一样,但是异常名称不同
+            final boolean flag = channel.waitForConfirms();
+            if (flag) {
+                System.out.println("消息：" + msg + "发布成功");
+            } else {
+                System.out.println("消息：" + msg + "发送失败");
+            }
         }
         stopWatch.stop();
         System.out.println(stopWatch.getTime());
